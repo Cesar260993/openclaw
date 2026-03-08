@@ -113,10 +113,29 @@ async function runAutoPR() {
   }
 }
 
+// Auto-PR Sync command
+async function runAutoPRSync() {
+  console.log('========================================');
+  console.log('🔄 Auto PR - Sync Status');
+  console.log('========================================\n');
+  
+  checkEnv();
+  
+  try {
+    run('node auto-pr.js --sync');
+  } catch (error) {
+    console.error('\n❌ Auto-PR Sync failed!');
+    console.error(error.message);
+    process.exit(1);
+  }
+}
+
 // Parse command line args
 const args = process.argv.slice(2);
 if (args.includes('--auto-pr') || args.includes('-p')) {
   runAutoPR();
+} else if (args.includes('--sync') || args.includes('-s')) {
+  runAutoPRSync();
 } else {
   main();
 }
