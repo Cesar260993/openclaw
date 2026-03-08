@@ -1,6 +1,14 @@
 # Task Tracker - Sistema de Seguimiento Automatizado
 
-Sistema que monitorea tareas en **Trello**, detecta tareas vencidas/estancadas, y envía alertas automáticas por email.
+Sistema que monitorea tareas en **Trello**, detecta tareas vencidas/estancadas, envía alertas automáticas por email, y **genera PRs automáticos** desde "Ready for Development".
+
+## 🎯 Características
+
+- ✅ **Fetch** automático de cards desde Trello
+- ✅ **Análisis** de tareas (vencidas, por vencer, estancadas)
+- ✅ **Alertas** por email vía SendGrid
+- ✅ **Auto-PR** desde "Ready for Development" a GitHub
+- ✅ **Backup** diario automático a GitHub
 
 ## 🔐 Configuración de Variables de Entorno
 
@@ -36,6 +44,9 @@ export TRELLO_BOARD_ID="board-id"
 export SENDGRID_API_KEY="tu-sendgrid-key"
 export SENDGRID_FROM_EMAIL="tu-email@outlook.com"
 export SENDGRID_TO_EMAIL="tu-email@gmail.com"
+
+# GitHub (para Auto-PR)
+export GITHUB_TOKEN="ghp_xxx"
 ```
 
 ### Método Alternativo: .env Local (Solo Desarrollo)
@@ -105,19 +116,48 @@ Configura el board en `config.json`:
 
 ## 🚀 Comandos
 
+### Pipeline Completo
+
 ```bash
 # Cargar variables de entorno
 source ~/.openclaw/env
 
-# Ejecutar manualmente
+# Ejecutar pipeline completo (fetch + analyze + alerts)
 cd /home/admin/.openclaw/workspace/task-tracker
-node scripts/fetch-trello.js
-node scripts/analyze-tasks.js
-node scripts/send-alerts.js
+node scripts/run.js
+```
 
-# Ver estado
+### Auto-PR Generator
+
+```bash
+# Generar PRs automáticos desde "Ready for Development"
+node scripts/run.js --auto-pr
+
+# O ejecutar directamente
+node scripts/auto-pr.js
+```
+
+### Scripts Individuales
+
+```bash
+# Fetch cards de Trello
+node scripts/fetch-trello.js
+
+# Analizar tareas
+node scripts/analyze-tasks.js
+
+# Enviar alertas
+node scripts/send-alerts.js
+```
+
+### Ver Estado y Reportes
+
+```bash
+# Ver estado actual
 cat state.json
-cat analysis.json
+
+# Ver análisis de tareas
+cat analysis.json | jq '.ready, .stuck, .overdue'
 
 # Ver reportes
 ls reports/daily/
@@ -145,10 +185,14 @@ task-tracker/
 ├── state.json               # Estado actual (gitignore)
 ├── analysis.json            # Análisis de tareas (gitignore)
 ├── peru-holidays-2026.json  # Feriados Perú
+├── README.md                # Esta documentación
+├── AUTO-PR.md               # Docs del Auto-PR Generator
 ├── scripts/
 │   ├── fetch-trello.js      # Extraer cards de Trello
 │   ├── analyze-tasks.js     # Analizar tareas vencidas/estancadas
-│   └── send-alerts.js       # Enviar emails de alerta
+│   ├── send-alerts.js       # Enviar emails de alerta
+│   ├── auto-pr.js           # 🆕 Generar PRs automáticos
+│   └── run.js               # Runner principal (soporta --auto-pr)
 ├── backlog-reviewer/
 │   └── review-backlog.js    # Reviewer automático del backlog
 └── reports/
