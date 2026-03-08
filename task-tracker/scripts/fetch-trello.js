@@ -2,7 +2,6 @@
 /**
  * Fetch Trello Cards
  * Extrae todas las cards del board configurado
- * Agrega automáticamente el label "Voltom-Tech/plazalud-infra" a todas las cards
  * 
  * Variables de entorno requeridas:
  * - TRELLO_API_KEY
@@ -22,9 +21,6 @@ const apiKey = process.env.TRELLO_API_KEY || config.apis.trello.apiKey.replace(/
 const apiToken = process.env.TRELLO_API_TOKEN || config.apis.trello.apiToken.replace(/\$\{TRELLO_API_TOKEN\}/, '');
 const boards = config.apis.trello.boards;
 
-// Label para taggear todas las cards del Development Board
-const PROJECT_LABEL = 'Voltom-Tech/plazalud-infra';
-
 // Validar que tenemos credenciales
 if (!apiKey || apiKey.includes('${')) {
   console.error('❌ ERROR: TRELLO_API_KEY no está configurada');
@@ -40,7 +36,7 @@ if (!apiToken || apiToken.includes('${')) {
   process.exit(1);
 }
 
-// Helper para hacer requests HTTPS GET
+// Helper para hacer requests HTTPS
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -57,53 +53,8 @@ function httpsGet(url) {
   });
 }
 
-// Helper para hacer requests HTTPS PUT
-function httpsPut(url, data) {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const postData = JSON.stringify(data);
-    
-    const options = {
-      hostname: urlObj.hostname,
-      port: 443,
-      path: urlObj.pathname + urlObj.search,
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-    
-    const req = https.request(options, (res) => {
-      let responseData = '';
-      res.on('data', (chunk) => responseData += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            resolve(JSON.parse(responseData));
-          } catch (e) {
-            resolve({ success: true, raw: responseData });
-          }
-        } else {
-          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
-        }
-      });
-    });
-    
-    req.on('error', reject);
-    req.setTimeout(30000, () => {
-      req.destroy();
-      reject(new Error('Request timeout'));
-    });
-    
-    req.write(postData);
-    req.end();
-  });
-}
-
 async function fetchTrelloCards() {
   const allCards = [];
-  let projectLabelId = null;
   
   for (const boardId of boards) {
     console.log(`📋 Fetching board: ${boardId}`);
@@ -119,19 +70,6 @@ async function fetchTrelloCards() {
     }
     
     console.log(`   Board: ${board.name}`);
-    
-    // Fetch labels del board para encontrar el label del proyecto
-    const labels = await httpsGet(
-      `https://api.trello.com/1/boards/${boardId}/labels?key=${apiKey}&token=${apiToken}`
-    );
-    
-    const projectLabel = labels.find(l => l.name === PROJECT_LABEL);
-    if (projectLabel) {
-      projectLabelId = projectLabel.id;
-      console.log(`   🏷️  Project label found: "${PROJECT_LABEL}" (${projectLabel.color})`);
-    } else {
-      console.log(`   ⚠️  Project label "${PROJECT_LABEL}" not found. Skipping auto-tag.`);
-    }
     
     // Fetch all cards
     let cards = await httpsGet(
@@ -155,42 +93,8 @@ async function fetchTrelloCards() {
       listMap[list.id] = list.name;
     });
     
-    // Process cards y agregar label si no lo tiene
-    let taggedCount = 0;
-    const cardIds = [];
-    
-    for (const card of cards) {
-      cardIds.push(card.id);
-      
-      const cardLabels = card.labels || [];
-      const hasProjectLabel = cardLabels.some(l => l.id === projectLabelId || l.name === PROJECT_LABEL);
-      
-      // Agregar label si no lo tiene y existe el label
-      if (projectLabelId && !hasProjectLabel) {
-        try {
-          await httpsPut(
-            `https://api.trello.com/1/cards/${card.id}/idLabels?key=${apiKey}&token=${apiToken}&value=${projectLabelId}`,
-            {}
-          );
-          taggedCount++;
-        } catch (error) {
-          console.error(`   ⚠️  Could not tag card "${card.name}": ${error.message}`);
-        }
-      }
-    }
-    
-    if (taggedCount > 0) {
-      console.log(`   ✅ Tagged ${taggedCount} cards with "${PROJECT_LABEL}"`);
-      console.log(`   🔄 Refetching cards to get updated labels...`);
-      
-      // Refetch cards para obtener labels actualizados
-      cards = await httpsGet(
-        `https://api.trello.com/1/boards/${boardId}/cards?key=${apiKey}&token=${apiToken}&members=true&labels=true`
-      );
-    }
-    
-    // Process cards con labels actualizados
-    for (const card of cards) {
+    // Process cards
+    cards.forEach(card => {
       allCards.push({
         id: card.id,
         idShort: card.idShort,
@@ -213,7 +117,7 @@ async function fetchTrelloCards() {
         boardId: boardId,
         boardName: board.name
       });
-    }
+    });
   }
   
   return allCards;
@@ -250,12 +154,6 @@ async function main() {
     Object.entries(byList).forEach(([list, count]) => {
       console.log(`   ${list}: ${count}`);
     });
-    
-    // Contar cards con el label del proyecto
-    const projectLabel = cards.filter(c => 
-      c.labels.some(l => l.name === PROJECT_LABEL)
-    ).length;
-    console.log(`\n🏷️  Cards tagged with "${PROJECT_LABEL}": ${projectLabel}/${cards.length}`);
     
     return cards;
   } catch (error) {
