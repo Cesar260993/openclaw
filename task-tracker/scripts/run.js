@@ -96,5 +96,30 @@ async function main() {
   }
 }
 
+// Auto-PR command
+async function runAutoPR() {
+  console.log('========================================');
+  console.log('🤖 Auto PR Generator');
+  console.log('========================================\n');
+  
+  checkEnv();
+  
+  try {
+    run('node auto-pr.js');
+  } catch (error) {
+    console.error('\n❌ Auto-PR failed!');
+    console.error(error.message);
+    process.exit(1);
+  }
+}
+
+// Parse command line args
+const args = process.argv.slice(2);
+if (args.includes('--auto-pr') || args.includes('-p')) {
+  runAutoPR();
+} else {
+  main();
+}
+
 // Run
 main();
