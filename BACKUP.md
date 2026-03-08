@@ -124,21 +124,28 @@ BACKUP.md
 scripts/backup.sh
 skills/ (6 skills)
 hooks/
+task-tracker/          ✅ AHORA INCLUIDO (con seguridad de env vars)
+├── scripts/           ✅ Todos los scripts .js
+├── backlog-reviewer/  ✅ Reviewer automático
+├── config.json        ✅ Usa ${VAR} placeholders (sin secretos)
+├── peru-holidays-2026.json
+├── .gitignore
+└── README.md
 ```
 
-### 🔒 Excluidos (contienen secretos)
+### 🔒 Excluidos (contienen secretos o estado runtime)
 ```
-task-tracker/.env
-task-tracker/config.json
-task-tracker/state.json
-task-tracker/analysis.json
-task-tracker/reports/
-memory/ (logs diarios)
-.git-credentials
-.openclaw/
-.clawdhub/
-.clawhub/
-*.log (excepto backup.log)
+task-tracker/.env              🔴 Credenciales locales
+task-tracker/state.json        🔴 Estado runtime
+task-tracker/analysis.json     🔴 Análisis temporal
+task-tracker/reports/          🔴 Reportes con datos personales
+memory/ (logs diarios)         🔴 Información personal
+.git-credentials               🔴 Token de GitHub
+~/.openclaw/env                🔴 Variables de entorno del sistema
+.openclaw/                     🔴 Estado runtime
+.clawdhub/                     🔴 Caché
+.clawhub/                      🔴 Caché
+*.log (excepto backup.log)     🔴 Logs
 ```
 
 ---
@@ -179,8 +186,52 @@ git status
 
 ---
 
+## 🔐 Variables de Entorno del Sistema
+
+Las credenciales se almacenan fuera del workspace en `~/.openclaw/env`:
+
+```bash
+# Ver archivo
+cat ~/.openclaw/env
+
+# Cargar en sesión actual
+source ~/.openclaw/env
+
+# Cargar permanentemente (agrega a ~/.bashrc)
+echo 'source ~/.openclaw/env' >> ~/.bashrc
+```
+
+### Backup de Variables de Entorno
+
+**IMPORTANTE:** Este archivo NO está en GitHub. Haz backup manualmente:
+
+```bash
+# Opción 1: Password Manager (Recomendado)
+# Copia el contenido a 1Password, Bitwarden, etc.
+
+# Opción 2: Backup encriptado
+tar -czf ~/openclaw-env-backup.tar.gz ~/.openclaw/env
+
+# Opción 3: Repo privado separado
+# Crea un repo privado solo para credenciales
+```
+
+### Variables Configuradas
+
+| Variable | Propósito |
+|----------|-----------|
+| `TRELLO_API_KEY` | API Key de Trello |
+| `TRELLO_API_TOKEN` | Token de autorización Trello |
+| `TRELLO_BOARD_ID` | Board ID a monitorear |
+| `SENDGRID_API_KEY` | API Key de SendGrid |
+| `SENDGRID_FROM_EMAIL` | Email remitente |
+| `SENDGRID_TO_EMAIL` | Email destinatario |
+
+---
+
 ## Última Actualización
 
 - **Creado:** 2026-03-08
+- **Actualizado:** 2026-03-08 (task-tracker incluido)
 - **Último backup:** Ver `backup.log`
 - **Estado:** ✅ Activo
