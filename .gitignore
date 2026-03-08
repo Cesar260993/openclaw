@@ -19,12 +19,16 @@ credentials
 *.log.*
 
 # Estado de tareas y reportes (task-tracker)
+# ✅ Scripts y config SÍ se incluyen (config usa variables de entorno)
+# ❌ Estado runtime y secretos NO se incluyen
 task-tracker/.env
+task-tracker/.env.local
 task-tracker/state.json
 task-tracker/analysis.json
 task-tracker/reports/daily/*.json
 task-tracker/reports/weekly/*.json
 task-tracker/reports/monthly/*.json
+task-tracker/reports/*.json
 task-tracker/*.log
 
 # Memoria diaria (puede tener info personal)

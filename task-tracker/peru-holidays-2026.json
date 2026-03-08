@@ -1,0 +1,66 @@
+{
+  "year": 2026,
+  "country": "Peru",
+  "holidays": [
+    {
+      "date": "2026-01-01",
+      "name": "Año Nuevo",
+      "type": "fixed"
+    },
+    {
+      "date": "2026-04-02",
+      "name": "Jueves Santo",
+      "type": "religious"
+    },
+    {
+      "date": "2026-04-03",
+      "name": "Viernes Santo",
+      "type": "religious"
+    },
+    {
+      "date": "2026-05-01",
+      "name": "Día del Trabajo",
+      "type": "fixed"
+    },
+    {
+      "date": "2026-06-29",
+      "name": "San Pedro y San Pablo",
+      "type": "religious"
+    },
+    {
+      "date": "2026-07-28",
+      "name": "Día de la Independencia",
+      "type": "fixed"
+    },
+    {
+      "date": "2026-07-29",
+      "name": "Día de la Independencia",
+      "type": "fixed"
+    },
+    {
+      "date": "2026-08-30",
+      "name": "Santa Rosa de Lima",
+      "type": "religious"
+    },
+    {
+      "date": "2026-10-08",
+      "name": "Combate de Angamos",
+      "type": "fixed"
+    },
+    {
+      "date": "2026-11-01",
+      "name": "Todos los Santos",
+      "type": "fixed"
+    },
+    {
+      "date": "2026-12-08",
+      "name": "Inmaculada Concepción",
+      "type": "religious"
+    },
+    {
+      "date": "2026-12-25",
+      "name": "Navidad",
+      "type": "fixed"
+    }
+  ]
+}

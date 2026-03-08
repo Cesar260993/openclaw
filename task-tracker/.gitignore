@@ -1,0 +1,13 @@
+# Environment variables (credentials)
+.env
+
+# Runtime state
+state.json
+analysis.json
+
+# Reports (keep structure, ignore content)
+reports/daily/*.json
+reports/weekly/*.json
+
+# Logs
+*.log

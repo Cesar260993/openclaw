@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "created": "2026-03-07",
+  "updated": "2026-03-08",
+  
+  "apis": {
+    "trello": {
+      "apiKey": "${TRELLO_API_KEY}",
+      "apiToken": "${TRELLO_API_TOKEN}",
+      "boards": ["STrhmjpz"]
+    },
+    "sendgrid": {
+      "apiKey": "${SENDGRID_API_KEY}",
+      "fromEmail": "${SENDGRID_FROM_EMAIL}",
+      "toEmail": "${SENDGRID_TO_EMAIL}"
+    }
+  },
+  
+  "thresholds": {
+    "dueSoon": 3,
+    "stuck": 5,
+    "overdue": 1
+  },
+  
+  "stuckCheck": {
+    "enabled": true,
+    "lists": [
+      "In progress",
+      "Ready for PR Review",
+      "Pending for deploy"
+    ]
+  },
+  
+  "schedule": {
+    "frequency": "every 2 business days",
+    "businessDays": [1, 2, 3, 4, 5],
+    "timezone": "America/Montevideo",
+    "holidays": "./peru-holidays-2026.json"
+  },
+  
+  "alerts": {
+    "channels": [],
+    "recipients": []
+  }
+}
