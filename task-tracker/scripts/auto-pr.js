@@ -330,7 +330,7 @@ async function commentWithPR(cardId, prUrl, prNumber) {
   await addComment(cardId, comment);
 }
 
-// Mover card a "Ready for PR Review"
+// Mover card a "Ready for PR Review" (se llama cuando el código está listo)
 async function moveToReadyForReview(cardId) {
   console.log('   📤 Moving card to "Ready for PR Review"...');
   
@@ -343,63 +343,10 @@ async function moveToReadyForReview(cardId) {
   console.log('   ✅ Card moved to "Ready for PR Review"');
 }
 
-// Verificar estado de PRs y actualizar cards
-async function syncPRStatus() {
-  console.log('\n🔄 Syncing PR status with Trello cards...\n');
-  
-  // Fetch cards de "Ready for Development" y "Pending for deploy"
-  const readyCards = await httpsGet(
-    `https://api.trello.com/1/lists/${READY_FOR_DEV_LIST_ID}/cards?key=${apiKey}&token=${apiToken}&labels=true`
-  );
-  
-  // Buscar PRs abiertos en GitHub
-  const prs = await httpsGet(
-    'https://api.github.com/repos/Voltom-Tech/plazalud-infra/pulls?state=open',
-    {},
-    githubToken
-  );
-  
-  let updated = 0;
-  
-  for (const card of readyCards) {
-    // Buscar si esta card tiene un PR asociado (por el número en comentarios)
-    const actions = await httpsGet(
-      `https://api.trello.com/1/cards/${card.id}/actions?key=${apiKey}&token=${apiToken}&filter=commentCard`
-    );
-    
-    // Buscar comentario con PR number
-    let prNumber = null;
-    for (const action of actions) {
-      const match = action.data.text.match(/PR creado: #(\d+)/);
-      if (match) {
-        prNumber = match[1];
-        break;
-      }
-    }
-    
-    if (!prNumber) continue;
-    
-    // Buscar PR en GitHub
-    const pr = prs.find(p => p.number === parseInt(prNumber));
-    
-    if (!pr) {
-      // PR fue mergeado o cerrado
-      console.log(`\n🔹 Card: ${card.name}`);
-      console.log(`   PR #${prNumber} was merged/closed`);
-      
-      // Mover a "Ready for PR Review"
-      await moveToReadyForReview(card.id);
-      
-      // Comentar
-      const comment = `🤖 **PR Merged**\n\nEl PR #${prNumber} ha sido mergeado. Card movida a "Ready for PR Review" para verificación final.`;
-      await addComment(card.id, comment);
-      
-      updated++;
-    }
-  }
-  
-  console.log(`\n✅ Synced ${updated} cards`);
-  return updated;
+// Comentar card cuando el código está listo
+async function commentCodeReady(cardId, prUrl, prNumber) {
+  const comment = `🤖 **Código Listo para Review**\n\nEl código ha sido generado y el PR está listo para revisión.\n\n🔗 PR: ${prUrl}\n\n📋 **Próximos pasos:**\n- Revisar el código en GitHub\n- Si hay observaciones, regresar card a "Ready for Development"\n- Si está OK, hacer merge`;
+  await addComment(cardId, comment);
 }
 
 // Main - Generar PRs
@@ -483,8 +430,8 @@ async function main() {
       await commentWithPR(card.id, pr.html_url, pr.number);
       
       // NOTA: NO movemos la card - se queda en "Ready for Development"
-      // hasta que el PR esté listo para review
-      console.log('   ℹ️  Card stays in "Ready for Development" (PR pending)');
+      // hasta que YO termine el código
+      console.log('   ℹ️  Card stays in "Ready for Development" (pending code generation)');
       
       prCreated++;
     } catch (error) {
@@ -501,27 +448,64 @@ async function main() {
   console.log(`   PRs created: ${prCreated}`);
   console.log(`   Skipped: ${skipped}`);
   console.log('========================================\n');
+  console.log('ℹ️  Cuando el código esté listo, mover cards a "Ready for PR Review" manualmente');
+  console.log('   O ejecutar: node scripts/auto-pr.js --ready <card-id>');
 }
 
-// Main - Sync PR status
-async function syncMode() {
+// Mover card específica a "Ready for PR Review"
+async function markAsReady(cardId) {
   console.log('========================================');
-  console.log('🔄 Auto PR - Sync Status');
+  console.log('📤 Marking card as Ready for PR Review');
   console.log('========================================\n');
   
   checkEnv();
   
-  await syncPRStatus();
+  // Fetch card info
+  const card = await httpsGet(
+    `https://api.trello.com/1/cards/${cardId}?key=${apiKey}&token=${apiToken}&labels=true`
+  );
+  
+  console.log(`🔹 Card: ${card.name}`);
+  
+  // Buscar PR en comentarios
+  const actions = await httpsGet(
+    `https://api.trello.com/1/cards/${cardId}/actions?key=${apiKey}&token=${apiToken}&filter=commentCard`
+  );
+  
+  let prUrl = null;
+  let prNumber = null;
+  
+  for (const action of actions) {
+    const match = action.data.text.match(/PR creado: #(\d+)/);
+    if (match) {
+      prNumber = match[1];
+      const urlMatch = action.data.text.match(/(https:\/\/github\.com\/[^\s]+)/);
+      if (urlMatch) {
+        prUrl = urlMatch[1];
+      }
+      break;
+    }
+  }
+  
+  if (prUrl && prNumber) {
+    // Comentar que el código está listo
+    await commentCodeReady(cardId, prUrl, prNumber);
+  }
+  
+  // Mover a "Ready for PR Review"
+  await moveToReadyForReview(cardId);
+  
+  console.log('\n✅ Card marked as ready for PR review');
 }
 
 // Parse command line args
 const args = process.argv.slice(2);
 if (require.main === module) {
-  if (args.includes('--sync') || args.includes('-s')) {
-    syncMode();
+  if (args.includes('--ready') && args[1]) {
+    markAsReady(args[1]);
   } else {
     main();
   }
 }
 
-module.exports = { fetchReadyCards, createPR, generateBranchName, syncPRStatus };
+module.exports = { fetchReadyCards, createPR, generateBranchName, markAsReady };
