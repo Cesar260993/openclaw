@@ -8,7 +8,48 @@ Generación automática de Pull Requests desde tarjetas de Trello.
 
 El script `auto-pr.js` automatiza la creación de Pull Requests en GitHub basándose en las tarjetas de Trello que están en la lista **"Ready for Development"**.
 
-### Flujo de Trabajo
+### 🔄 Flujo de Trabajo Actualizado
+
+```
+┌─────────────────────────┐
+│  Ready for Development  │
+│    (Trello Board)       │
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  Auto-PR Generator      │
+│  (Crear PR en GitHub)   │
+└───────────┬─────────────┘
+            │
+            │ ✅ Card se MANTIENE en
+            │    "Ready for Development"
+            │
+            ▼
+    ┌───────────────────┐
+    │  PR en Review     │
+    │  (GitHub)         │
+    └──────┬────┬───────┘
+           │    │
+      SI   │    │ NO
+    Merge  │    │ Observaciones
+           │    │
+           │    └──────────────┐
+           │                   │
+           ▼                   ▼
+    ┌─────────────────┐  ┌─────────────────────────┐
+    │ Ready for PR    │  │ Usuario regresa card a  │
+    │ Review          │  │ "Ready for Development" │
+    └─────────────────┘  └───────────┬─────────────┘
+                                      │
+                                      ▼
+                               ┌─────────────────┐
+                               │ Procesar        │
+                               │ observaciones   │
+                               │ y crear nuevo   │
+                               │ PR              │
+                               └─────────────────┘
+```
 
 ```
 ┌─────────────────────────┐
@@ -64,7 +105,7 @@ El script `auto-pr.js` automatiza la creación de Pull Requests en GitHub basán
 
 ## 🚀 Uso
 
-### Ejecutar Auto-PR
+### Ejecutar Auto-PR (Crear PRs)
 
 ```bash
 # Cargar variables de entorno
@@ -81,11 +122,31 @@ node scripts/run.js --auto-pr
 node scripts/run.js -p
 ```
 
+### Sincronizar Estado de PRs (Check Merged)
+
+```bash
+# Verificar PRs mergeados y mover cards a "Ready for PR Review"
+node scripts/auto-pr.js --sync
+
+# O con run.js
+node scripts/run.js --sync
+
+# O flag corto
+node scripts/run.js -s
+```
+
 ### Pipeline Completo + Auto-PR
 
 ```bash
 # Ejecutar pipeline y luego auto-pr
 node scripts/run.js && node scripts/run.js --auto-pr
+```
+
+### Auto-PR en un Solo Comando
+
+```bash
+# Pipeline + Auto-PR + Sync
+node scripts/run.js && node scripts/run.js -p && node scripts/run.js -s
 ```
 
 ---
@@ -140,10 +201,16 @@ export GITHUB_TOKEN="ghp_xxx"
 ```
 🤖 **Auto-PR Generated**
 
-PR creado: https://github.com/Voltom-Tech/plazalud-infra/pull/XX
+PR creado: #XX
 
-El PR ha sido generado automáticamente desde esta tarjeta. 
-Revisar y mergear cuando esté listo.
+El PR ha sido generado automáticamente desde esta tarjeta.
+
+📋 **Flujo:**
+- Card se mantiene en "Ready for Development" hasta que el PR esté listo
+- Cuando el PR esté mergeado, la card pasará a "Ready for PR Review"
+- Si hay observaciones, regresar la card a "Ready for Development"
+
+🔗 Link: https://github.com/Voltom-Tech/plazalud-infra/pull/XX
 ```
 
 ### Cuando NO se Genera PR (score bajo)
@@ -215,8 +282,36 @@ node scripts/run.js --auto-pr
 ### 5. Resultado
 
 - ✅ PR creado en GitHub
-- ✅ Card movida a **"In progress"**
+- ✅ Card **se mantiene** en "Ready for Development" (PR pending)
 - ✅ Comentario agregado en Trello con link al PR
+
+### 6. Cuando el PR está Listo
+
+**Opción A: PR Mergeado Sin Observaciones**
+```bash
+# Ejecutar sync para mover card automáticamente
+node scripts/run.js --sync
+
+# Resultado:
+# - Card movida a "Ready for PR Review"
+# - Comentario agregado en Trello
+```
+
+**Opción B: Hay Observaciones en el PR**
+```
+1. Usuario revisa PR en GitHub
+2. Usuario deja comentarios con observaciones
+3. Usuario regresa card a "Ready for Development"
+4. Ejecutar Auto-PR nuevamente para procesar observaciones
+   node scripts/run.js --auto-pr
+```
+
+### 7. Procesar Observaciones
+
+El script leerá los comentarios del PR de GitHub y:
+- Actualizará la descripción de la card si es necesario
+- Creará un nuevo PR con las correcciones
+- Mantendrá el hilo de conversación
 
 ---
 
@@ -336,7 +431,7 @@ El token necesita:
 
 ## 📝 Ejemplos
 
-### Ejecución Exitosa
+### Ejecución Exitosa (Crear PR)
 
 ```
 ========================================
@@ -356,8 +451,7 @@ El token necesita:
    ✅ PR created: https://github.com/Voltom-Tech/plazalud-infra/pull/1
    💬 Adding comment to card...
    ✅ Comment added
-   📤 Moving card to "In progress"...
-   ✅ Card moved
+   ℹ️  Card stays in "Ready for Development" (PR pending)
 
 ========================================
 📊 Summary:
@@ -365,6 +459,26 @@ El token necesita:
    PRs created: 1
    Skipped: 2
 ========================================
+```
+
+### Ejecución Exitosa (Sync PRs Mergeados)
+
+```
+========================================
+🔄 Auto PR - Sync Status
+========================================
+
+🔄 Syncing PR status with Trello cards...
+
+
+🔹 Card: 🖥️ [INFRA] Configurar VPC
+   PR #1 was merged/closed
+   📤 Moving card to "Ready for PR Review"...
+   ✅ Card moved to "Ready for PR Review"
+   💬 Adding comment to card...
+   ✅ Comment added
+
+✅ Synced 1 cards
 ```
 
 ### Ejecución con Saltos
