@@ -1,0 +1,68 @@
+# ===========================================
+# OpenClaw Workspace .gitignore
+# Backup seguro sin secretos
+# ===========================================
+
+# Credenciales y secretos
+.env
+*.env
+.env.*
+credentials
+*.credentials
+.git-credentials
+
+# Estado runtime y caché
+.openclaw/
+.clawdhub/
+.clawhub/
+*.log
+*.log.*
+
+# Estado de tareas y reportes (task-tracker)
+task-tracker/.env
+task-tracker/state.json
+task-tracker/analysis.json
+task-tracker/reports/daily/*.json
+task-tracker/reports/weekly/*.json
+task-tracker/reports/monthly/*.json
+task-tracker/*.log
+
+# Memoria diaria (puede tener info personal)
+memory/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Node (si hubiera)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# ===========================================
+# FILES TO KEEP (configuración importante)
+# ===========================================
+# ✅ AGENTS.md - Instrucciones del agente
+# ✅ SOUL.md - Personalidad del agente
+# ✅ USER.md - Info del usuario
+# ✅ IDENTITY.md - Identidad del agente
+# ✅ TOOLS.md - Notas locales (sin secretos)
+# ✅ HEARTBEAT.md - Tareas del heartbeat
+# ✅ MEMORY.md - Memoria a largo plazo (sin info sensible)
+# ✅ skills/ - Skills instalados
+# ✅ hooks/ - Git hooks personalizados
