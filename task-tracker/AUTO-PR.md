@@ -8,7 +8,7 @@ Generación automática de Pull Requests desde tarjetas de Trello.
 
 El script `auto-pr.js` automatiza la creación de Pull Requests en GitHub basándose en las tarjetas de Trello que están en la lista **"Ready for Development"**.
 
-### 🔄 Flujo de Trabajo Actualizado
+### 🔄 Flujo de Trabajo
 
 ```
 ┌─────────────────────────┐
@@ -27,127 +27,99 @@ El script `auto-pr.js` automatiza la creación de Pull Requests en GitHub basán
             │
             ▼
     ┌───────────────────┐
-    │  PR en Review     │
-    │  (GitHub)         │
-    └──────┬────┬───────┘
-           │    │
-      SI   │    │ NO
-    Merge  │    │ Observaciones
-           │    │
-           │    └──────────────┐
-           │                   │
-           ▼                   ▼
-    ┌─────────────────┐  ┌─────────────────────────┐
-    │ Ready for PR    │  │ Usuario regresa card a  │
-    │ Review          │  │ "Ready for Development" │
-    └─────────────────┘  └───────────┬─────────────┘
-                                      │
-                                      ▼
-                               ┌─────────────────┐
-                               │ Procesar        │
-                               │ observaciones   │
-                               │ y crear nuevo   │
-                               │ PR              │
-                               └─────────────────┘
-```
-
-```
+    │  Yo genero código │
+    │  (terraform, etc) │
+    └──────┬────────────┘
+           │
+           │ Cuando el código está listo
+           ▼
 ┌─────────────────────────┐
-│  Ready for Development  │
-│    (Trello Board)       │
+│  node run.js --ready    │
+│  (Mover a PR Review)    │
 └───────────┬─────────────┘
             │
             ▼
 ┌─────────────────────────┐
-│  ¿Tiene label del       │
-│  repositorio?           │
-└──────┬──────┬───────────┘
-       │ NO   │ SI
-       │      ▼
-       │  ┌─────────────────────────┐
-       │  │  ¿Tiene score verde     │
-       │  │  en analyze-tasks.js?   │
-       │  └──────┬──────┬───────────┘
-       │         │ NO   │ SI
-       │         │      ▼
-       │         │  ┌─────────────────────────┐
-       │         │  │  Generar PR en GitHub   │
-       │         │  │  - Crear branch         │
-       │         │  │  - Crear PR             │
-       │         │  │  - Mover a In Progress  │
-       │         │  │  - Comentar en Trello   │
-       │         │  └─────────────────────────┘
-       │         │
-       │         ▼
-       │  ┌─────────────────────────┐
-       │  │  Ejecutar analyze-tasks │
-       │  │  ¿Pasó el análisis?     │
-       │  └──────┬──────┬───────────┘
-       │         │ NO   │ SI
-       │         │      │
-       │         │      └──────┐
-       │         │             │
-       │         ▼             │
-       │  ┌─────────────────────────┐
-       │  │  Dejar comentario       │
-       │  │  explicando por qué     │
-       │  │  no se generó PR        │
-       │  └─────────────────────────┘
-       │
-       ▼
-┌─────────────────────────┐
-│  Saltar tarjeta         │
-│  (comentario opcional)  │
-└─────────────────────────┘
+│  Ready for PR Review    │
+│  (Esperando merge)      │
+└───────────┬─────────────┘
+            │
+            │
+     ┌──────┴──────┐
+     │             │
+     ▼             ▼
+┌─────────┐  ┌──────────────┐
+│  Merge  │  │ Observaciones│
+│   ✅    │  │   ❌         │
+└─────────┘  └──────┬───────┘
+                    │
+                    │ Usuario regresa
+                    │ card a
+                    ▼
+           ┌─────────────────┐
+           │ Ready for Dev   │
+           │ (Re-procesar)   │
+           └─────────────────┘
 ```
 
 ---
 
 ## 🚀 Uso
 
-### Ejecutar Auto-PR (Crear PRs)
+### 1. Generar PRs Automáticos
 
 ```bash
 # Cargar variables de entorno
 source ~/.openclaw/env
 
-# Opción 1: Ejecutar directamente
+# Ejecutar auto-pr (crea PRs en GitHub)
 cd /home/admin/.openclaw/workspace/task-tracker
-node scripts/auto-pr.js
-
-# Opción 2: Usar run.js con flag
 node scripts/run.js --auto-pr
 
-# Opción 3: Usar flag corto
-node scripts/run.js -p
+# O ejecutar directamente
+node scripts/auto-pr.js
 ```
 
-### Sincronizar Estado de PRs (Check Merged)
+**Resultado:**
+- ✅ PR creado en GitHub
+- ✅ Card **se mantiene** en "Ready for Development"
+- ✅ Comentario agregado en Trello con link al PR
+
+---
+
+### 2. Cuando el Código Está Listo
 
 ```bash
-# Verificar PRs mergeados y mover cards a "Ready for PR Review"
-node scripts/auto-pr.js --sync
+# Mover card específica a "Ready for PR Review"
+node scripts/run.js --ready <CARD_ID>
 
-# O con run.js
-node scripts/run.js --sync
-
-# O flag corto
-node scripts/run.js -s
+# Ejemplo:
+node scripts/run.js --ready 69ab5d133a24dba710983243
 ```
 
-### Pipeline Completo + Auto-PR
-
+**Cómo obtener el CARD_ID:**
 ```bash
-# Ejecutar pipeline y luego auto-pr
-node scripts/run.js && node scripts/run.js --auto-pr
+# Ver cards en state.json
+cat state.json | jq '.cards[] | {name, id, listName}'
+
+# O ver en Trello (el ID está en la URL de la card)
 ```
 
-### Auto-PR en un Solo Comando
+**Resultado:**
+- ✅ Card movida a "Ready for PR Review"
+- ✅ Comentario agregado: "Código listo para review"
+- ✅ Link al PR incluido
 
-```bash
-# Pipeline + Auto-PR + Sync
-node scripts/run.js && node scripts/run.js -p && node scripts/run.js -s
-```
+---
+
+### 3. Si Hay Observaciones
+
+El usuario:
+1. Revisa el PR en GitHub
+2. Deja comentarios con observaciones
+3. **Regresa la card a "Ready for Development"** (manual en Trello)
+4. Yo proceso las observaciones y genero nuevo código
+5. Vuelvo a ejecutar `--ready` cuando esté listo
 
 ---
 
@@ -196,7 +168,7 @@ export GITHUB_TOKEN="ghp_xxx"
 
 ## 💬 Comentarios Automáticos
 
-### Cuando se Genera PR
+### Al Crear PR
 
 ```
 🤖 **Auto-PR Generated**
@@ -210,41 +182,29 @@ El PR ha sido generado automáticamente desde esta tarjeta.
 - Cuando el PR esté mergeado, la card pasará a "Ready for PR Review"
 - Si hay observaciones, regresar la card a "Ready for Development"
 
-🔗 Link: https://github.com/Voltom-Tech/plazalud-infra/pull/XX
+🔗 Link: https://github.com/...
 ```
 
-### Cuando NO se Genera PR (score bajo)
+### Al Marcar como Ready (Código Listo)
 
 ```
-🤖 **Auto-PR Check**
+🤖 **Código Listo para Review**
 
-Esta tarjeta no tiene score verde en el análisis automático. 
-No se generó PR porque:
-- La prioridad no es alta suficiente
-- Hay tareas con mayor prioridad pendientes
+El código ha sido generado y el PR está listo para revisión.
 
-Revisar analysis.json para más detalles.
-```
+🔗 PR: https://github.com/...
 
-### Cuando NO se Genera PR (no analizada)
-
-```
-🤖 **Auto-PR Check**
-
-Esta tarjeta no fue incluida en el análisis automático. 
-Posibles razones:
-- No cumple con los criterios de prioridad
-- Información incompleta en la descripción
-- Score bajo en el análisis
-
-Por favor revisar y actualizar la tarjeta antes de generar PR.
+📋 **Próximos pasos:**
+- Revisar el código en GitHub
+- Si hay observaciones, regresar card a "Ready for Development"
+- Si está OK, hacer merge
 ```
 
 ---
 
-## 🔄 Flujo Típico
+## 🔄 Flujo Completo Ejemplo
 
-### 1. Crear Card en Trello
+### Paso 1: Crear Card en Trello
 
 ```
 Título: 🖥️ [INFRA] Configurar VPC para producción
@@ -258,60 +218,66 @@ Descripción:
   - Setup NAT Gateway para subnets privadas
 ```
 
-### 2. Ejecutar Pipeline
+### Paso 2: Ejecutar Pipeline
 
 ```bash
 # Fetch + Analyze + Alerts
 node scripts/run.js
 ```
 
-### 3. Verificar Score
+### Paso 3: Verificar Score
 
 ```bash
 # Revisar analysis.json
 cat analysis.json | jq '.ready[] | select(.id == "CARD_ID")'
 ```
 
-### 4. Ejecutar Auto-PR
+### Paso 4: Generar PR Automático
 
 ```bash
 # Si score es verde
 node scripts/run.js --auto-pr
 ```
 
-### 5. Resultado
+**Output:**
+```
+🔹 Card: 🖥️ [INFRA] Configurar VPC
+   📄 Branch: feat/configurar-vpc-42
+   🚀 Creating GitHub PR...
+   ✅ PR created: #1
+   ℹ️  Card stays in "Ready for Development" (pending code generation)
+```
 
-- ✅ PR creado en GitHub
-- ✅ Card **se mantiene** en "Ready for Development" (PR pending)
-- ✅ Comentario agregado en Trello con link al PR
+### Paso 5: Generar Código (Manual)
 
-### 6. Cuando el PR está Listo
-
-**Opción A: PR Mergeado Sin Observaciones**
 ```bash
-# Ejecutar sync para mover card automáticamente
-node scripts/run.js --sync
-
-# Resultado:
-# - Card movida a "Ready for PR Review"
-# - Comentario agregado en Trello
+# Yo genero el código Terraform
+cd /home/admin/.openclaw/workspace/plazalud-infra
+# ... creo archivos .tf ...
+git add .
+git commit -m "feat: Add VPC configuration"
+git push origin feat/configurar-vpc-42
 ```
 
-**Opción B: Hay Observaciones en el PR**
-```
-1. Usuario revisa PR en GitHub
-2. Usuario deja comentarios con observaciones
-3. Usuario regresa card a "Ready for Development"
-4. Ejecutar Auto-PR nuevamente para procesar observaciones
-   node scripts/run.js --auto-pr
+### Paso 6: Marcar como Ready
+
+```bash
+# Cuando el código está listo
+node scripts/run.js --ready 69ab5d133a24dba710983243
 ```
 
-### 7. Procesar Observaciones
+**Output:**
+```
+🔹 Card: 🖥️ [INFRA] Configurar VPC
+   📤 Moving card to "Ready for PR Review"...
+   ✅ Card moved to "Ready for PR Review"
+```
 
-El script leerá los comentarios del PR de GitHub y:
-- Actualizará la descripción de la card si es necesario
-- Creará un nuevo PR con las correcciones
-- Mantendrá el hilo de conversación
+### Paso 7: Review y Merge
+
+- Usuario revisa PR en GitHub
+- Si está OK → **Merge**
+- Si hay observaciones → Regresa card a "Ready for Development"
 
 ---
 
@@ -320,39 +286,10 @@ El script leerá los comentarios del PR de GitHub y:
 | Archivo | Propósito |
 |---------|-----------|
 | `scripts/auto-pr.js` | Script principal de Auto-PR |
-| `scripts/run.js` | Runner con soporte --auto-pr |
+| `scripts/run.js` | Runner con soporte --auto-pr y --ready |
 | `analysis.json` | Resultado del análisis de tareas |
 | `state.json` | Estado actual de cards de Trello |
 | `config.json` | Configuración del task-tracker |
-
----
-
-## 🛠️ Personalización
-
-### Cambiar Lista de Origen
-
-Editar `AUTO_PR_LIST_ID` en `auto-pr.js`:
-
-```javascript
-const READY_FOR_DEV_LIST_ID = '69ab19cf4fd18af4dcd0909a'; // Tu list ID
-```
-
-### Cambiar Repositorio
-
-Editar `REPO_LABEL` en `auto-pr.js`:
-
-```javascript
-const REPO_LABEL = 'Voltom-Tech/plazalud-infra'; // Tu label
-```
-
-### Cambiar Comportamiento de Score
-
-Editar la lógica de verificación en `auto-pr.js`:
-
-```javascript
-// Verificar si está en 'ready' (score verde)
-const isInReady = analysis.ready && analysis.ready.some(c => c.id === card.id);
-```
 
 ---
 
@@ -377,7 +314,6 @@ source ~/.openclaw/env
 
 - El script intenta crear PR desde una branch que no existe
 - Necesitas crear la branch primero o usar un nombre diferente
-- El nombre de branch se genera automáticamente desde el título de la card
 
 ### Error: 403 Forbidden en GitHub API
 
@@ -386,50 +322,7 @@ source ~/.openclaw/env
 
 ---
 
-## 📊 Logs y Monitoreo
-
-### Ver Logs de Ejecución
-
-```bash
-# Ejecutar con output detallado
-node scripts/auto-pr.js 2>&1 | tee auto-pr.log
-```
-
-### Ver PRs Creados
-
-```bash
-# GitHub API
-curl -H "Authorization: token $GITHUB_TOKEN" \
-  https://api.github.com/repos/Voltom-Tech/plazalud-infra/pulls
-```
-
-### Ver Cards Procesadas
-
-```bash
-# Revisar state.json
-cat state.json | jq '.cards[] | select(.labels[].name == "Voltom-Tech/plazalud-infra")'
-```
-
----
-
-## 🔐 Seguridad
-
-### Tokens
-
-- ✅ Los tokens se guardan en `~/.openclaw/env` (fuera del repo)
-- ✅ El archivo `.env` está en `.gitignore`
-- ❌ **NUNCA** commitear tokens al repositorio
-
-### Permisos de GitHub Token
-
-El token necesita:
-
-- `repo` - Acceso completo a repositorios
-- `workflow` - Para actualizar workflows si es necesario
-
----
-
-## 📝 Ejemplos
+## 📊 Ejemplos de Output
 
 ### Ejecución Exitosa (Crear PR)
 
@@ -446,12 +339,10 @@ El token necesita:
 
 
 🔹 Card: 🖥️ [INFRA] Configurar VPC
-   📄 Branch: feat/configurar-vpc-para-produccion-42
+   📄 Branch: feat/configurar-vpc-42
    🚀 Creating GitHub PR...
-   ✅ PR created: https://github.com/Voltom-Tech/plazalud-infra/pull/1
-   💬 Adding comment to card...
-   ✅ Comment added
-   ℹ️  Card stays in "Ready for Development" (PR pending)
+   ✅ PR created: #1
+   ℹ️  Card stays in "Ready for Development" (pending code generation)
 
 ========================================
 📊 Summary:
@@ -459,62 +350,41 @@ El token necesita:
    PRs created: 1
    Skipped: 2
 ========================================
+
+ℹ️  Cuando el código esté listo, mover cards a "Ready for PR Review" manualmente
+   O ejecutar: node scripts/run.js --ready <card-id>
 ```
 
-### Ejecución Exitosa (Sync PRs Mergeados)
+### Ejecución Exitosa (Marcar como Ready)
 
 ```
 ========================================
-🔄 Auto PR - Sync Status
+📤 Marking card as Ready for PR Review
 ========================================
-
-🔄 Syncing PR status with Trello cards...
-
 
 🔹 Card: 🖥️ [INFRA] Configurar VPC
-   PR #1 was merged/closed
+   💬 Adding comment: Código listo para review
    📤 Moving card to "Ready for PR Review"...
    ✅ Card moved to "Ready for PR Review"
-   💬 Adding comment to card...
-   ✅ Comment added
 
-✅ Synced 1 cards
+✅ Card marked as ready for PR review
 ```
 
-### Ejecución con Saltos
+---
 
-```
-========================================
-🤖 Auto PR Generator
-========================================
+## 🔐 Seguridad
 
-📋 Fetching cards from "Ready for Development"...
-   Found 5 cards
+### Tokens
 
-========================================
-📋 Processing cards...
+- ✅ Los tokens se guardan en `~/.openclaw/env` (fuera del repo)
+- ✅ El archivo `.env` está en `.gitignore`
+- ❌ **NUNCA** commitear tokens al repositorio
 
+### Permisos de GitHub Token
 
-🔹 Card: 🖥️ [INFRA] Configurar VPC
-   ⏭️  Skipping: No tiene label "Voltom-Tech/plazalud-infra"
-
-🔹 Card: 🔄 [MIGRATION] Migrar dominio
-   ⚠️  Card not in analysis. Running analyze-tasks.js...
-   ❌ Skipped: Not in analysis. Comment added.
-
-🔹 Card: 📦 [SETUP] Configurar Terraform
-   📄 Branch: feat/configurar-terraform-15
-   🚀 Creating GitHub PR...
-   ✅ PR created: https://github.com/Voltom-Tech/plazalud-infra/pull/2
-   ✅ Card moved
-
-========================================
-📊 Summary:
-   Processed: 3
-   PRs created: 1
-   Skipped: 4
-========================================
-```
+El token necesita:
+- `repo` - Acceso completo a repositorios
+- `workflow` - Para actualizar workflows si es necesario
 
 ---
 
@@ -526,4 +396,4 @@ El token necesita:
 
 ---
 
-_Última actualización: 2026-03-08_
+_Última actualización: 2026-03-09_
