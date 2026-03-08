@@ -197,7 +197,7 @@ async function runAnalyzeTasks() {
   
   const { execSync } = require('child_process');
   try {
-    execSync('node scripts/analyze-tasks.js', {
+    execSync('node analyze-tasks.js', {
       cwd: __dirname,
       stdio: 'inherit'
     });
