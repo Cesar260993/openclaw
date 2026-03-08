@@ -66,7 +66,7 @@ function httpsGet(url) {
   });
 }
 
-// Helper HTTPS POST
+// Helper HTTPS POST (para GitHub con Bearer token)
 function httpsPost(url, data, token) {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify(data);
@@ -79,6 +79,50 @@ function httpsPost(url, data, token) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let responseData = '';
+      res.on('data', (chunk) => responseData += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(responseData));
+          } catch (e) {
+            resolve({ success: true, raw: responseData });
+          }
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+        }
+      });
+    });
+    
+    req.on('error', reject);
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
+    
+    req.write(postData);
+    req.end();
+  });
+}
+
+// Helper HTTPS POST para Trello (usa key/token en URL)
+function trelloPost(url, data) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(data);
+    const urlObj = new URL(url);
+    
+    const options = {
+      hostname: urlObj.hostname,
+      port: 443,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(postData)
       }
@@ -141,6 +185,50 @@ function httpsPut(url, data) {
     });
     
     req.on('error', reject);
+    req.write(postData);
+    req.end();
+  });
+}
+
+// Helper HTTPS PUT para Trello (usa key/token en URL)
+function trelloPut(url, data) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(data);
+    const urlObj = new URL(url);
+    
+    const options = {
+      hostname: urlObj.hostname,
+      port: 443,
+      path: urlObj.pathname + urlObj.search,
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let responseData = '';
+      res.on('data', (chunk) => responseData += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(responseData));
+          } catch (e) {
+            resolve({ success: true, raw: responseData });
+          }
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+        }
+      });
+    });
+    
+    req.on('error', reject);
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
+    
     req.write(postData);
     req.end();
   });
@@ -213,7 +301,7 @@ async function addComment(cardId, comment) {
   console.log(`   💬 Adding comment to card...`);
   
   const data = { text: comment };
-  await httpsPost(
+  await trelloPost(
     `https://api.trello.com/1/cards/${cardId}/actions/comments?key=${apiKey}&token=${apiToken}`,
     data
   );
@@ -226,7 +314,7 @@ async function moveToInProgress(cardId) {
   console.log('   📤 Moving card to "In progress"...');
   
   const data = { idList: '69ab19d5b57bdbb03d849344' };
-  await httpsPut(
+  await trelloPut(
     `https://api.trello.com/1/cards/${cardId}?key=${apiKey}&token=${apiToken}`,
     data
   );
@@ -335,7 +423,7 @@ async function moveToReadyForReview(cardId) {
   console.log('   📤 Moving card to "Ready for PR Review"...');
   
   const data = { idList: '69ab19f3d15544e30cbfed55' };
-  await httpsPut(
+  await trelloPut(
     `https://api.trello.com/1/cards/${cardId}?key=${apiKey}&token=${apiToken}`,
     data
   );
